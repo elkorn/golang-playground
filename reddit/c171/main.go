@@ -38,6 +38,17 @@ func hex2byte(src []byte) []byte {
 	return result
 }
 
+func byte2bin(src byte) []byte {
+	result := make([]byte, 4)
+	param := src
+	for i := 0; i < 4; i++ {
+		result[3-i] = param & 1
+		param = param >> 1
+	}
+
+	return result
+}
+
 func main() {
 	file, _ := ioutil.ReadFile("input")
 	for _, v := range file {
