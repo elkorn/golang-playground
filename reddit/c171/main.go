@@ -54,6 +54,10 @@ func byte2bin(src byte) []byte {
 	return byte2out(src, 0, 1)
 }
 
+func byte2x(src byte) []byte {
+	return byte2out(src, byte(' '), byte('x'))
+}
+
 func main() {
 	file, _ := ioutil.ReadFile("input")
 	for _, v := range file {

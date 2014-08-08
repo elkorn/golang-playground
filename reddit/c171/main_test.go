@@ -56,6 +56,22 @@ func TestShift(t *testing.T) {
 	assert.Equal(t, 1, x&1)
 }
 
+func TestByte2X(t *testing.T) {
+	tests := []struct {
+		input    byte
+		expected []byte
+	}{
+		{1, []byte("   x")},
+		{2, []byte("  x ")},
+		{3, []byte("  xx")},
+		{4, []byte(" x  ")},
+	}
+
+	for _, test := range tests {
+		assert.Equal(t, test.expected, byte2x(test.input))
+	}
+}
+
 // func TestMain(t *testing.T) {
 // 	main()
 // }
