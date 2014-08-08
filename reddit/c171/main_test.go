@@ -1,7 +1,6 @@
 package c171
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -43,10 +42,8 @@ func TestByte2Bin(t *testing.T) {
 }
 
 func TestShift(t *testing.T) {
-	x := byte(255)
-	fmt.Printf("%v << 1 == %v\n", x, byte(x<<1))
-	fmt.Printf("%v >> 1 == %v\n", x, byte(x>>1))
-	x = byte(13)
+	// How could I forget how byte shifting works. :)
+	x := byte(13)
 	assert.Equal(t, 1, x&1)
 	x = x >> 1
 	assert.Equal(t, 0, x&1)
@@ -54,6 +51,8 @@ func TestShift(t *testing.T) {
 	assert.Equal(t, 1, x&1)
 	x = x >> 1
 	assert.Equal(t, 1, x&1)
+
+	assert.Equal(t, 0, (15>>4)&1)
 }
 
 func TestByte2X(t *testing.T) {
@@ -65,6 +64,8 @@ func TestByte2X(t *testing.T) {
 		{2, []byte("  x ")},
 		{3, []byte("  xx")},
 		{4, []byte(" x  ")},
+		{15, []byte("xxxx")},
+		{255, []byte("xxxxxxxx")},
 	}
 
 	for _, test := range tests {
@@ -72,6 +73,17 @@ func TestByte2X(t *testing.T) {
 	}
 }
 
-// func TestMain(t *testing.T) {
-// 	main()
-// }
+func TestBytes2X(t *testing.T) {
+	tests := []byteTest{
+		{[]byte("FF"), []byte("xxxxxxxx")},
+		{[]byte("FF 81"), []byte("xxxxxxxx\nx      x")},
+	}
+
+	for _, test := range tests {
+		assert.Equal(t, string(test.expected), string(bytes2x(test.input)))
+	}
+}
+
+func TestMain(t *testing.T) {
+	main()
+}

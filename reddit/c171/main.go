@@ -1,32 +1,17 @@
 package c171
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 )
 
-var translate map[byte]string = map[byte]string{
-	'0':  "    ",
-	'1':  "   x",
-	'2':  "  x ",
-	'3':  "  xx",
-	'4':  " x  ",
-	'5':  " x x",
-	'6':  " xx ",
-	'7':  " xxx",
-	'8':  "x   ",
-	'9':  "x  x",
-	'A':  "x x ",
-	'B':  "x xx",
-	'C':  "xx  ",
-	'D':  "xx x",
-	'E':  "xxx ",
-	'F':  "xxxx",
-	' ':  "\n",
-	'\n': "\n\n",
-}
+const SPACE = byte(' ')
+const ENTER = byte('\n')
+const HALF_BYTE = 4
 
 func hex2byte(src []byte) []byte {
 	result := make([]byte, len(src)/2)
@@ -39,11 +24,16 @@ func hex2byte(src []byte) []byte {
 }
 
 func byte2out(src, zero, one byte) []byte {
-	result := make([]byte, 4)
+	size := HALF_BYTE
+	if src > 15 {
+		size = size + HALF_BYTE
+	}
+
+	result := make([]byte, size)
 	mapping := []byte{zero, one}
 	param := src
-	for i := 0; i < 4; i++ {
-		result[3-i] = mapping[param&1]
+	for i := 0; i < size; i++ {
+		result[size-i-1] = mapping[param&1]
 		param = param >> 1
 	}
 
@@ -58,9 +48,32 @@ func byte2x(src byte) []byte {
 	return byte2out(src, byte(' '), byte('x'))
 }
 
+func bytes2x(src []byte) []byte {
+	var result bytes.Buffer
+	n, start := len(src), 0
+	writeSlice := func(slice []byte) {
+		for _, b := range hex2byte(slice) {
+			result.Write(byte2x(b))
+		}
+	}
+
+	for i := 0; i < n; i++ {
+		if SPACE == src[i] {
+			writeSlice(src[start:i])
+			result.WriteByte(ENTER)
+			start = i + 1
+		}
+	}
+
+	writeSlice(src[start:n])
+
+	return result.Bytes()
+}
+
 func main() {
-	file, _ := ioutil.ReadFile("input")
-	for _, v := range file {
-		fmt.Print(translate[v])
+	file, _ := os.Open("input")
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		fmt.Println(string(bytes2x(scanner.Bytes())))
 	}
 }
