@@ -38,15 +38,20 @@ func hex2byte(src []byte) []byte {
 	return result
 }
 
-func byte2bin(src byte) []byte {
+func byte2out(src, zero, one byte) []byte {
 	result := make([]byte, 4)
+	mapping := []byte{zero, one}
 	param := src
 	for i := 0; i < 4; i++ {
-		result[3-i] = param & 1
+		result[3-i] = mapping[param&1]
 		param = param >> 1
 	}
 
 	return result
+}
+
+func byte2bin(src byte) []byte {
+	return byte2out(src, 0, 1)
 }
 
 func main() {
