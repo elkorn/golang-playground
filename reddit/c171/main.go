@@ -1,8 +1,10 @@
 package c171
 
 import (
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
+	"log"
 )
 
 var translate map[byte]string = map[byte]string{
@@ -24,6 +26,16 @@ var translate map[byte]string = map[byte]string{
 	'F':  "xxxx",
 	' ':  "\n",
 	'\n': "\n\n",
+}
+
+func hex2byte(src []byte) []byte {
+	result := make([]byte, len(src)/2)
+	_, err := hex.Decode(result, src)
+	if nil != err {
+		log.Fatal(err)
+	}
+
+	return result
 }
 
 func main() {
