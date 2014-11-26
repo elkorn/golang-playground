@@ -11,8 +11,8 @@ import (
 )
 
 func main() {
-	spec := redis.DefaultSpec().Db(13)
-	client, e := redis.NewSynchClientWithSpec(spec)
+	testSpec := redis.DefaultSpec().Db(13)
+	client, e := redis.NewSynchClientWithSpec(testSpec)
 
 	if nil != e {
 		log.Println("failed to create the client", e)

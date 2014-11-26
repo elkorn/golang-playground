@@ -2,9 +2,14 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"time"
 )
+
+type test struct {
+	io.Reader
+}
 
 func main() {
 	quit := make(chan bool)
