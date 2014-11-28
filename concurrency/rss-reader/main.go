@@ -2,35 +2,25 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
+	"runtime"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/ajstarks/svgo"
+	rss "github.com/jteeuwen/go-pkg-rss"
 )
 
-type Feed struct {
-	url           string
-	status        int
-	itemCount     int
-	complete      bool
-	itemsComplete bool
-	index         int
+var feeds []Feed = []Feed{
+	mkFeed("http://reddit.com/r/dailyprogrammer/.rss"),
+	mkFeed("http://feeds.feedburner.com/blogspot/gJZg"),
+	mkFeed("http://www.infoq.com/feed?token=zqwZmgUydqtawZ3zoUvp2Q2xZcNoS7J5"),
 }
 
-type FeedItem struct {
-	feedIndex int
-	complete  bool
-	url       string
-}
-
-var startTime = time.Now().UnixNano()
-
-var feeds []Feed
-var height int
-var width int
-var colors []string
-var startTime int64
+var colors []string = []string{"#ff9999", "#99ff99", "#9999ff"}
+var startTime int64 = now()
 var timeout int
 var feedSpace int
 var wg sync.WaitGroup
@@ -40,9 +30,9 @@ func grabFeed(feed *Feed, feedChan chan bool, osvg *svg.SVG) {
 	startGrabSeconds := startGrab - startTime
 
 	fmt.Println("Grabbing feed", feed.url, "at", startGrabSeconds, "second mark")
-	if 0 == feed.status {
+	if FEED_NOT_READ == feed.status {
 		fmt.Println("Feed not yet read")
-		feed.status = 1
+		feed.status = FEED_DOWNLOADING
 
 		startX := int(startGrabSeconds * 33)
 		startY := feedSpace * (feed.index)
@@ -57,23 +47,88 @@ func grabFeed(feed *Feed, feedChan chan bool, osvg *svg.SVG) {
 		}
 
 		endSec := time.Now().Unix()
-		endX := int((ednSec - startGrab))
+		endX := int((endSec - startGrab))
 		if 0 == endX {
 			endX = 1
 		}
 
 		fmt.Println("Read feed in", endX, "seconds")
+		fmt.Println("startX:", startX, ", endX:", endX)
 		osvg.Rect(startX, startY, endX, feedSpace, "fill:#000000;opacity:.4")
 		wg.Wait()
 
 		endGrab := time.Now().Unix()
-		edGrabSeconds := endGrab - startTime
+		endGrabSeconds := endGrab - startTime
 		feedEndX := int(endGrabSeconds * 33)
 
 		osvg.Rect(feedEndX, startY, 1, feedSpace, "fill:#ff0000;opacity:.9;")
 
 		feedChan <- true
-	} else if 1 == feed.status {
+	} else if FEED_DOWNLOADING == feed.status {
 		fmt.Println("Feed already in progreess")
+	}
+}
+
+func channelHandler(feed *rss.Feed, channels []*rss.Channel) {
+
+}
+
+func itemsHandler(feed *rss.Feed, ch *rss.Channel, newitems []*rss.Item) {
+	fmt.Println("Found", len(newitems), "items in", feed.Url)
+
+	for i := range newitems {
+		fmt.Println(i, ":", newitems[i])
+		url := newitems[i].Guid
+		fmt.Println(url)
+	}
+
+	wg.Done()
+}
+
+func getRSS(rw http.ResponseWriter, req *http.Request) {
+	startTime = time.Now().Unix()
+	rw.Header().Set("Content-Type", "image/svg+xml")
+	outputSVG := svg.New(rw)
+	outputSVG.Start(width, height)
+
+	feedSpace = (height - 20) / len(feeds)
+
+	for i := 0; i < 30000; i++ {
+		timeText := strconv.FormatInt(int64(i/10), 10)
+		if i%1000 == 0 {
+			outputSVG.Text(i/30, 390, timeText, "text-anchor:middle;font-size:10px;fill:#000000")
+		} else if i%4 == 0 {
+			outputSVG.Circle(i, 377, 1, "fill:#cccccc;stroke:none")
+		}
+
+		if i%10 == 0 {
+			outputSVG.Rect(i, 0, 1, 400, "fill:#dddddd")
+		}
+		if i%50 == 0 {
+			outputSVG.Rect(i, 0, 1, 400, "fill:#cccccc")
+		}
+	}
+
+	feedChan := make(chan bool, 3)
+
+	for i := range feeds {
+		outputSVG.Rect(0, (i * feedSpace), width, feedSpace, "fill:"+colors[i]+";stroke:none;")
+		feeds[i].status = FEED_NOT_READ
+		go grabFeed(&feeds[i], feedChan, outputSVG)
+		<-feedChan
+	}
+
+	outputSVG.End()
+}
+
+func main() {
+	runtime.GOMAXPROCS(2)
+
+	timeout = 1000
+
+	http.Handle("/getrss", http.HandlerFunc(getRSS))
+	err := http.ListenAndServe(":1900", nil)
+	if err != nil {
+		panic(err)
 	}
 }

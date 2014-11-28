@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
+	// "log"
 	"net/http"
-	"runtime"
+	// "runtime"
 	"strconv"
 	"time"
 
@@ -14,8 +14,6 @@ import (
 
 var width = 800
 var height = 400
-
-var startTime = now()
 
 func drawPoint(osvg *svg.SVG, point int, process int) {
 	seconds := now()
@@ -103,12 +101,12 @@ func visualizeBasic(rw http.ResponseWriter, req *http.Request) {
 	})
 }
 
-func main() {
-	runtime.GOMAXPROCS(2)
-	http.Handle("/visualize", http.HandlerFunc(visualizeBasic))
-
-	err := http.ListenAndServe(":1900", nil)
-	if err != nil {
-		log.Fatal("ListenAndServe:", err)
-	}
-}
+// func main() {
+// 	runtime.GOMAXPROCS(2)
+// 	http.Handle("/visualize", http.HandlerFunc(visualizeBasic))
+//
+// 	err := http.ListenAndServe(":1900", nil)
+// 	if err != nil {
+// 		log.Fatal("ListenAndServe:", err)
+// 	}
+// }
