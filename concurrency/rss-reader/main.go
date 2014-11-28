@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+
 	"net/http"
 	"os"
 	"runtime"
@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/advancedlogic/GoOse"
 	"github.com/ajstarks/svgo"
 	rss "github.com/jteeuwen/go-pkg-rss"
 )
@@ -24,6 +25,7 @@ var colors []string = []string{"#ff9999", "#99ff99", "#9999ff"}
 var startTime int64 = now()
 var timeout int
 var feedSpace int
+var duck = goose.New()
 var wg sync.WaitGroup
 
 func grabFeed(feed *Feed, feedChan chan bool, osvg *svg.SVG) {
@@ -81,14 +83,12 @@ func itemsHandler(feed *rss.Feed, ch *rss.Channel, newitems []*rss.Item) {
 
 	for i := range newitems {
 		url := newitems[i].Guid
-		if nil == url {
-			fmt.Println("nil")
-		} else {
-			fmt.Println(*url)
-			_, err := http.Get(*url)
-			if err != nil {
-				log.Fatal(err)
-			}
+		if nil != url {
+			/*article :=*/ _ = duck.ExtractFromUrl(*url)
+			// fmt.Println("")
+			// fmt.Println("[" + *url + "|" + article.Title + "]")
+			// fmt.Println("")
+			// fmt.Println(string(article.CleanedText))
 		}
 	}
 
