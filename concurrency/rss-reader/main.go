@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"runtime"
@@ -15,7 +16,7 @@ import (
 
 var feeds []Feed = []Feed{
 	mkFeed("http://reddit.com/r/dailyprogrammer/.rss"),
-	mkFeed("http://feeds.feedburner.com/blogspot/gJZg"),
+	mkFeed("http://www.echojs.com/rss"),
 	mkFeed("http://www.infoq.com/feed?token=zqwZmgUydqtawZ3zoUvp2Q2xZcNoS7J5"),
 }
 
@@ -52,6 +53,8 @@ func grabFeed(feed *Feed, feedChan chan bool, osvg *svg.SVG) {
 			endX = 1
 		}
 
+		endX *= 33
+
 		fmt.Println("Read feed in", endX, "seconds")
 		fmt.Println("startX:", startX, ", endX:", endX)
 		osvg.Rect(startX, startY, endX, feedSpace, "fill:#000000;opacity:.4")
@@ -77,9 +80,16 @@ func itemsHandler(feed *rss.Feed, ch *rss.Channel, newitems []*rss.Item) {
 	fmt.Println("Found", len(newitems), "items in", feed.Url)
 
 	for i := range newitems {
-		fmt.Println(i, ":", newitems[i])
 		url := newitems[i].Guid
-		fmt.Println(url)
+		if nil == url {
+			fmt.Println("nil")
+		} else {
+			fmt.Println(*url)
+			_, err := http.Get(*url)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 	}
 
 	wg.Done()
@@ -115,6 +125,9 @@ func getRSS(rw http.ResponseWriter, req *http.Request) {
 		outputSVG.Rect(0, (i * feedSpace), width, feedSpace, "fill:"+colors[i]+";stroke:none;")
 		feeds[i].status = FEED_NOT_READ
 		go grabFeed(&feeds[i], feedChan, outputSVG)
+	}
+
+	for _ = range feeds {
 		<-feedChan
 	}
 
