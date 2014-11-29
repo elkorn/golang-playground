@@ -12,7 +12,7 @@ var balance int
 var transactionNo int
 var transactions int
 
-func synchronizedByChannels(wg *sync.WaitGroup) {
+func synchronizedByChannels(done func()) {
 	balanceChan := make(chan int)
 	transactionChan := make(chan bool)
 
@@ -24,7 +24,7 @@ func synchronizedByChannels(wg *sync.WaitGroup) {
 				fmt.Println("Should quit")
 				transactionChan <- true
 				close(balanceChan)
-				(*wg).Done()
+				done()
 			}
 		}(i)
 	}
@@ -35,17 +35,7 @@ func synchronizedByChannels(wg *sync.WaitGroup) {
 	for shouldContinue {
 		select {
 		case amt := <-balanceChan:
-			fmt.Println("Transaction for $", amt)
-			// Maintain the non-negative acct balance invariant.
-			if balance-amt < 0 {
-				fmt.Println("Transaction failed.")
-			} else {
-				balance -= amt
-				fmt.Println("Transaction succeeded.")
-			}
-
-			fmt.Println("Current balance: $", balance)
-
+			transaction(amt)
 		case status := <-transactionChan:
 			if status {
 				fmt.Println("Done")
@@ -56,24 +46,53 @@ func synchronizedByChannels(wg *sync.WaitGroup) {
 	}
 }
 
+func withRaceCondition(done func()) {
+	transactionChan := make(chan bool)
+
+	for i := 0; i < transactions; i++ {
+		go func(i int, transactionChan chan bool) {
+			transactionAmount := rand.Intn(25)
+			transaction(transactionAmount)
+			if i == transactions-1 {
+				fmt.Println("Should quit")
+				transactionChan <- true
+			}
+		}(i, transactionChan)
+	}
+
+	go transaction(0)
+	select {
+	case <-transactionChan:
+		fmt.Println("Transactions finished")
+		done()
+	}
+
+	close(transactionChan)
+}
+
 func initialize() {
 	balance = 1000
 	transactions = 100
 	transactionNo = 0
 }
 
-func run(action func(*sync.WaitGroup)) {
+func run(action func(func())) {
 	initialize()
 	var wg sync.WaitGroup
+	done := func() {
+		wg.Done()
+	}
+
 	fmt.Println("Starting balance: $", balance)
 	wg.Add(1)
-	action(&wg)
+	action(done)
 	wg.Wait()
 	fmt.Println("Final balance: $", balance)
 }
 
 func transaction(amount int) bool {
 	approved := false
+	// Maintain the non-negative acct balance invariant.
 	if balance-amount >= 0 {
 		approved = true
 		balance -= amount
@@ -95,5 +114,6 @@ func transaction(amount int) bool {
 func main() {
 	rand.Seed(time.Now().Unix())
 	runtime.GOMAXPROCS(2)
-	run(synchronizedByChannels)
+	// run(synchronizedByChannels)
+	run(withRaceCondition)
 }
