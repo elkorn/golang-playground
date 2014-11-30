@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math/rand"
 	"runtime"
 	"sync"
@@ -12,16 +11,17 @@ var balance int
 var transactionNo int
 var transactions int
 
-func synchronizedByChannels(done func()) {
+func synchronizedByChannels(start, done func()) {
 	balanceChan := make(chan int)
 	transactionChan := make(chan bool)
 
+	start()
 	for i := 0; i < transactions; i++ {
 		go func(i int) {
 			transactionAmount := rand.Intn(25)
 			balanceChan <- transactionAmount
 			if i == transactions-1 {
-				fmt.Println("Should quit")
+				// fmt.Println("Should quit")
 				transactionChan <- true
 				close(balanceChan)
 				done()
@@ -31,14 +31,14 @@ func synchronizedByChannels(done func()) {
 
 	shouldContinue := true
 
-	go transaction(0)
+	// go transaction(0)
 	for shouldContinue {
 		select {
 		case amt := <-balanceChan:
 			transaction(amt)
 		case status := <-transactionChan:
 			if status {
-				fmt.Println("Done")
+				// fmt.Println("Done")
 				shouldContinue = false
 				close(transactionChan)
 			}
@@ -46,24 +46,25 @@ func synchronizedByChannels(done func()) {
 	}
 }
 
-func withRaceCondition(done func()) {
+func withRaceCondition(start, done func()) {
 	transactionChan := make(chan bool)
 
+	start()
 	for i := 0; i < transactions; i++ {
 		go func(i int, transactionChan chan bool) {
 			transactionAmount := rand.Intn(25)
 			transaction(transactionAmount)
 			if i == transactions-1 {
-				fmt.Println("Should quit")
+				// fmt.Println("Should quit")
 				transactionChan <- true
 			}
 		}(i, transactionChan)
 	}
 
-	go transaction(0)
+	// go transaction(0)
 	select {
 	case <-transactionChan:
-		fmt.Println("Transactions finished")
+		// fmt.Println("Transactions finished")
 		done()
 	}
 
@@ -76,18 +77,20 @@ func initialize() {
 	transactionNo = 0
 }
 
-func run(action func(func())) {
+func run(action func(func(), func())) {
 	initialize()
 	var wg sync.WaitGroup
 	done := func() {
 		wg.Done()
 	}
+	start := func() {
+		wg.Add(1)
+	}
 
-	fmt.Println("Starting balance: $", balance)
-	wg.Add(1)
-	action(done)
+	// fmt.Println("Starting balance: $", balance)
+	action(start, done)
 	wg.Wait()
-	fmt.Println("Final balance: $", balance)
+	// fmt.Println("Final balance: $", balance)
 }
 
 func transaction(amount int) bool {
@@ -98,22 +101,22 @@ func transaction(amount int) bool {
 		balance -= amount
 	}
 
-	var approvedText string
-	if approved {
-		approvedText = "approved"
-	} else {
-		approvedText = "declined"
-	}
+	// var approvedText string
+	// if approved {
+	// 	approvedText = "approved"
+	// } else {
+	// 	approvedText = "declined"
+	// }
 
 	transactionNo++
-	fmt.Println(transactionNo, "transaction for $", amount, approvedText)
-	fmt.Println("\t Remaining balance $", balance)
+	// fmt.Println(transactionNo, "transaction for $", amount, approvedText)
+	// fmt.Println("\t Remaining balance $", balance)
 	return approved
 }
 
 func main() {
 	rand.Seed(time.Now().Unix())
 	runtime.GOMAXPROCS(2)
-	// run(synchronizedByChannels)
-	run(withRaceCondition)
+	run(synchronizedByChannels)
+	// run(withRaceCondition)
 }
