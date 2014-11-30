@@ -10,6 +10,7 @@ import (
 var balance int
 var transactionNo int
 var transactions int
+var mutex sync.Mutex
 
 func synchronizedByChannels(start, done func()) {
 	balanceChan := make(chan int)
@@ -54,6 +55,33 @@ func withRaceCondition(start, done func()) {
 		go func(i int, transactionChan chan bool) {
 			transactionAmount := rand.Intn(25)
 			transaction(transactionAmount)
+			if i == transactions-1 {
+				// fmt.Println("Should quit")
+				transactionChan <- true
+			}
+		}(i, transactionChan)
+	}
+
+	// go transaction(0)
+	select {
+	case <-transactionChan:
+		// fmt.Println("Transactions finished")
+		done()
+	}
+
+	close(transactionChan)
+}
+
+func synchronizedWithMutex(start, done func()) {
+	transactionChan := make(chan bool)
+
+	start()
+	for i := 0; i < transactions; i++ {
+		go func(i int, transactionChan chan bool) {
+			transactionAmount := rand.Intn(25)
+			mutex.Lock()
+			transaction(transactionAmount)
+			mutex.Unlock()
 			if i == transactions-1 {
 				// fmt.Println("Should quit")
 				transactionChan <- true
