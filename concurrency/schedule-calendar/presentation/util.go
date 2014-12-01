@@ -1,11 +1,14 @@
 package presentation
 
 import (
+	"fmt"
 	"html/template"
 	"strconv"
+
+	"github.com/elkorn/golang-playground/concurrency/schedule-calendar/domain"
 )
 
-func dismissData(st1 int, st2 bool) type {
+func dismissData(st1 int, st2 bool) {
 }
 
 func formatTime(hour int) string {
@@ -22,16 +25,18 @@ func formatTime(hour int) string {
 	return strconv.FormatInt(int64(hourText), 10) // + ampm
 }
 
-func FormatAvailableTimes(u User) template.HTML {
+func FormatAvailableTimes(u domain.User) template.HTML {
 	html := "<b>" + u.Name + "</b> - "
 
 	for k, v := range u.Times {
-		dissmissData(k, v)
+		dismissData(k, v)
 		if u.Times[k] {
 			formattedTime := formatTime(k)
-			html += "<a href='/schedule/" + u.Name + "/"
-			+strconv.FormatInt(int64(k), 10)
-			+"' class='button'>" + formattedTime + "</a>"
+			html += fmt.Sprintf(
+				"<a href='/schedule/%v/%d' class='button'>%s</a>",
+				u.Name,
+				strconv.FormatInt(int64(k), 10),
+				formattedTime)
 		}
 	}
 
